@@ -1,0 +1,89 @@
+version: "3.8"
+
+networks:
+  iceberg-net:
+    driver: bridge
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - iceberg-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - iceberg-net
+
+  flink-jobmanager:
+    build: ./flink
+    command: jobmanager
+    ports:
+      - "8081:8081"
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=flink-jobmanager
+    volumes:
+      - ../warehouse:/warehouse
+    networks:
+      - iceberg-net
+
+  flink-taskmanager:
+    build: ./flink
+    command: taskmanager
+    depends_on:
+      - flink-jobmanager
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=flink-jobmanager
+      - TASK_MANAGER_NUMBER_OF_TASK_SLOTS=4
+    volumes:
+      - ../warehouse:/warehouse
+    networks:
+      - iceberg-net
+
+  iceberg-rest:
+    image: tabulario/iceberg-rest
+    ports:
+      - "8181:8181"
+    environment:
+      - CATALOG_WAREHOUSE=/warehouse
+    volumes:
+      - ../warehouse:/warehouse
+    networks:
+      - iceberg-net
+
+  trino:
+    image: trinodb/trino
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../warehouse:/warehouse
+      - ./trino/iceberg.properties:/etc/trino/catalog/iceberg.properties
+    networks:
+      - iceberg-net
+    depends_on:
+      - iceberg-rest
+  superset:
+    build: ./superset
+    container_name: superset
+    ports:
+      - "8088:8088"
+    environment:
+      SUPERSET_SECRET_KEY: "Q2g8sV6P2L8O0K7uW7s8b4v6kE9c4p3aYx9Zt1fJgKp5mTqVdA"
+    depends_on:
+      - trino
+    networks:
+      - iceberg-net
