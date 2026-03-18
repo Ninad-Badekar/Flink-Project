@@ -77,7 +77,9 @@ services:
     depends_on:
       - iceberg-rest
   superset:
-    build: ./superset
+    build:
+      context: ..
+      dockerfile: docker/superset/Dockerfile
     container_name: superset
     ports:
       - "8088:8088"
