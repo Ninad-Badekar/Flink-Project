@@ -88,7 +88,7 @@ def init():
         from superset.models.core import Database
         from superset.models.sql_lab import SavedQuery
 
-        # 1. Create Trino database connection
+        #  Create Trino database connection
         existing = db.session.query(Database).filter_by(database_name="Trino").first()
         if not existing:
             trino_db = Database(
@@ -102,18 +102,18 @@ def init():
             )
             db.session.add(trino_db)
             db.session.commit()
-            print("✅ Trino database connection created")
+            print("Trino database connection created")
         else:
             trino_db = existing
-            print("ℹ️  Trino connection already exists")
+            print(" Trino connection already exists")
 
-        # 2. Get admin user
+        #  Get admin user
         admin = db.session.query(User).filter_by(username="admin").first()
         if not admin:
-            print("⚠️  Admin user not found - run superset fab create-admin first")
+            print("  Admin user not found - run superset fab create-admin first")
             return
 
-        # 3. Create saved queries
+        # Create saved queries
         for q in QUERIES:
             existing_q = (
                 db.session.query(SavedQuery)
@@ -129,12 +129,12 @@ def init():
                     created_by=admin,
                 )
                 db.session.add(saved)
-                print(f"✅ Saved query: {q['label']}")
+                print(f" Saved query: {q['label']}")
             else:
-                print(f"ℹ️  Query already exists: {q['label']}")
+                print(f" Query already exists: {q['label']}")
 
         db.session.commit()
-        print("\n✅ Superset init complete! Go to SQL → Saved Queries to see them.")
+        print("\n Superset init complete! Go to SQL → Saved Queries to see them.")
 
 
 if __name__ == "__main__":

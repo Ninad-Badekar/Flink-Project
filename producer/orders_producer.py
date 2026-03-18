@@ -5,7 +5,7 @@ from datetime import datetime
 
 from kafka import KafkaProducer
 
-# ✅ Kafka Producer
+# Kafka Producer
 producer = KafkaProducer(
     bootstrap_servers="localhost:29092",  # host → correct
     value_serializer=lambda v: json.dumps(v).encode("utf-8"),
@@ -13,9 +13,9 @@ producer = KafkaProducer(
     linger_ms=0,
 )
 
-# -------------------------------
-# 1. Static master data
-# -------------------------------
+
+#  Static master data
+
 customers = [
     {"customer_id": 1, "customer_name": "Ninad", "city": "Mumbai"},
     {"customer_id": 2, "customer_name": "Rahul", "city": "Pune"},
@@ -49,9 +49,8 @@ products = [
     },
 ]
 
-# -------------------------------
-# 2. Send master data ONCE
-# -------------------------------
+#  Send master data ONCE
+
 print("🔄 Sending Customers & Products (ONE-TIME)...")
 
 for customer in customers:
@@ -63,9 +62,8 @@ for product in products:
 producer.flush()
 print("✅ Master data sent\n")
 
-# -------------------------------
-# 3. Stream transactional data
-# -------------------------------
+# Stream transactional data
+
 order_id = 1
 order_item_id = 1
 
@@ -89,12 +87,9 @@ while True:
         "quantity": quantity,
         "price": product["price"],
     }
-
-    # ✅ Send transactional data
     producer.send("orders", order)
     producer.send("order_items", order_item)
 
-    # ✅ Ensure immediate delivery
     producer.flush()
 
     print("📦 Order:", order)

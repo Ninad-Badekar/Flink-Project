@@ -34,18 +34,14 @@ public class OrderProcessor {
 
         public static void main(String[] args) throws Exception {
 
-                // ─────────────────────────────────────────────
-                // 1. Flink Environment
-                // ─────────────────────────────────────────────
+                // Flink Environment
                 StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
                 env.enableCheckpointing(10000);
                 env.setParallelism(1);
 
                 ObjectMapper mapper = new ObjectMapper();
 
-                // ─────────────────────────────────────────────
-                // 2. Kafka Sources
-                // ─────────────────────────────────────────────
+                // Kafka Sources
 
                 KafkaSource<String> ordersSource = KafkaSource.<String>builder()
                                 .setBootstrapServers("kafka:9092")
@@ -88,9 +84,7 @@ public class OrderProcessor {
                 DataStream<String> productsStream = env.fromSource(productsSource, WatermarkStrategy.noWatermarks(),
                                 "Products");
 
-                // ─────────────────────────────────────────────
-                // 3. Iceberg Catalog
-                // ─────────────────────────────────────────────
+                // Iceberg Catalog
 
                 Map<String, String> catalogProps = new HashMap<>();
                 catalogProps.put(CatalogProperties.CATALOG_IMPL, "org.apache.iceberg.rest.RESTCatalog");
@@ -105,9 +99,7 @@ public class OrderProcessor {
 
                 Catalog catalog = catalogLoader.loadCatalog();
 
-                // ─────────────────────────────────────────────
-                // 4. Create Tables
-                // ─────────────────────────────────────────────
+                // Create Tables
 
                 TableIdentifier ordersTable = TableIdentifier.of("db", "orders");
                 Schema ordersSchema = new Schema(
@@ -152,9 +144,7 @@ public class OrderProcessor {
                         catalog.createTable(productsTable, productsSchema, PartitionSpec.unpartitioned());
                 }
 
-                // ─────────────────────────────────────────────
-                // 5. Transform Streams
-                // ─────────────────────────────────────────────
+                // Transform Streams
 
                 DataStream<RowData> ordersRow = ordersStream.map(value -> {
                         try {
@@ -220,9 +210,7 @@ public class OrderProcessor {
                 }, InternalTypeInfo.of(RowType.of(new IntType(), new VarCharType(), new VarCharType(), new IntType())))
                                 .filter(Objects::nonNull);
 
-                // ─────────────────────────────────────────────
-                // 6. Iceberg Sink
-                // ─────────────────────────────────────────────
+                // Iceberg Sink
 
                 FlinkSink.forRowData(ordersRow)
                                 .tableLoader(TableLoader.fromCatalog(catalogLoader, ordersTable))
